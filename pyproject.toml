@@ -1,0 +1,13 @@
+[project]
+name = "earnings-agent"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "fastapi", "uvicorn[standard]", "httpx", "tenacity",
+  "pydantic>=2", "jinja2", "beautifulsoup4"
+]
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "ruff", "mypy", "types-requests"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
