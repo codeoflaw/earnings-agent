@@ -1,6 +1,5 @@
 import json
 import logging
-import re
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -26,7 +25,6 @@ from app.config import (
     USER_AGENT,
     WRITE_TIMEOUT,
 )
-from app.schemas.ingest import TICKER_PATTERN
 
 INDEX_FILE = DATA_DIR / ".ingest_index.json"
 
