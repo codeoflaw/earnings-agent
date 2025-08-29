@@ -131,7 +131,7 @@ def _get_extension(content_type: Optional[str], url: str) -> str:
 
 def build_save_path(ticker: str, url: str, content_type: Optional[str] = None) -> Path:
     folder = ensure_ticker_dir(ticker)
-    basename = basename or "download"
+    basename = Path(urlparse(url).path).name or "download"
     ext = _get_extension(content_type, url)
     if not basename.endswith(ext):
         basename = f"{basename}{ext}"
