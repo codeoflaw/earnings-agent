@@ -211,8 +211,6 @@ def fetch_to_disk(
                     if not chunk:
                         continue
                     bytes_written += len(chunk)
-                    if bytes_written > MAX_BYTES:
-                        f.close()
                         save_path.unlink(missing_ok=True)
                         raise IngestTooLarge(f"Downloaded > {MAX_BYTES} bytes")
                     f.write(chunk)
