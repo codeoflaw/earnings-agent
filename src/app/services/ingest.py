@@ -33,10 +33,28 @@ INDEX_FILE = DATA_DIR / ".ingest_index.json"
 log = logging.getLogger(__name__)
 
 
-class IngestTooLarge(Exception): ...
+class IngestTooLarge(Exception):
+    """Raised when an ingested file exceeds the maximum allowed size (MAX_BYTES).
+
+    This exception is raised in two cases:
+    1. When Content-Length header indicates file is too large before download
+    2. When downloaded content exceeds size limit during streaming
+    """
+
+    ...
 
 
-class IngestUnsupportedType(Exception): ...
+class IngestUnsupportedType(Exception):
+    """Raised when attempting to ingest a file with a disallowed content type.
+
+    This exception is raised in two cases:
+    1. When HEAD request returns an unsupported content-type header
+    2. When GET response content-type differs from HEAD and is unsupported
+
+    The exception value contains the unsupported content type that was received.
+    """
+
+    ...
 
 
 def _now_utc() -> datetime:
