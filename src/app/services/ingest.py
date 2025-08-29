@@ -151,7 +151,7 @@ def _mk_client() -> httpx.Client:
     )
 
 
-def _is_retryable(exc: Exception) -> bool:
+def _is_retryable(exc: BaseException) -> bool:
     # Network errors and 5xx are retryable
     if isinstance(exc, httpx.RequestError):
         return True

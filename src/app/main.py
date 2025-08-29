@@ -14,12 +14,9 @@ def health():
 
 @app.post("/ingest/{ticker}", response_model=IngestResult)
 def ingest(
+    req: IngestRequest,
     ticker: str = Path(..., min_length=1, max_length=8, pattern=r"^[A-Z0-9\-\.]+$"),
-    req: IngestRequest | None = None,
 ):
-    if req is None:
-        raise HTTPException(status_code=400, detail="Body required")
-
     try:
         path, content_type, nbytes = fetch_to_disk(ticker, str(req.url))
         return IngestResult(
