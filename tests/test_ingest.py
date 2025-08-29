@@ -1,3 +1,5 @@
+import re
+
 import httpx
 
 from app.services.ingest import IngestTooLarge, fetch_to_disk
@@ -34,6 +36,7 @@ def test_fetch_to_disk_html(tmp_path, monkeypatch):
     assert content_type.startswith("text/html")
     assert nbytes == len(html)
     assert str(path.parent).endswith("/raw/MSFT")
+    assert re.match(r"\d{8}_.*\.html", path.name)
 
 
 def test_fetch_too_large(tmp_path):
