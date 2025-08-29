@@ -58,10 +58,17 @@ class IngestUnsupportedType(Exception):
 
 
 def _now_utc() -> datetime:
+    """Return current UTC datetime for consistent timestamp generation."""
     return datetime.now(timezone.utc)
 
 
 def _index_load() -> dict[str, dict]:
+    """Load the ingest index from disk.
+
+    Returns:
+        dict: The index mapping ticker|url keys to cache entries.
+              Returns empty dict if file doesn't exist or is invalid.
+    """
     try:
         if INDEX_FILE.exists():
             return json.loads(INDEX_FILE.read_text())
@@ -71,6 +78,11 @@ def _index_load() -> dict[str, dict]:
 
 
 def _index_save(index: dict[str, dict]) -> None:
+    """Safely save the ingest index to disk using atomic file replacement.
+
+    Args:
+        index: The index mapping ticker|url keys to cache entries
+    """
     INDEX_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = INDEX_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(index, ensure_ascii=False, indent=2))
@@ -78,6 +90,15 @@ def _index_save(index: dict[str, dict]) -> None:
 
 
 def _index_key(ticker: str, url: str) -> str:
+    """Generate a unique cache key for a ticker/URL pair.
+
+    Args:
+        ticker: The stock ticker symbol
+        url: The URL of the ingested document
+
+    Returns:
+        str: A unique key in the format "TICKER|url"
+    """
     return f"{ticker.upper()}|{url}"
 
 
@@ -124,10 +145,23 @@ def ensure_ticker_dir(ticker: str) -> Path:
 
 
 def _is_allowed_content_type(content_type: Optional[str]) -> bool:
+    """Check if a content type is in the allowed list.
+
+    Args:
+        content_type: The Content-Type header value to check
+
+    Returns:
+        bool: True if content_type matches exactly one of ALLOWED_CONTENT_TYPES
+              after normalizing (stripping parameters, whitespace, and case)
+
+    Example:
+        >>> _is_allowed_content_type('text/html; charset=utf-8')
+        True  # if 'text/html' is in ALLOWED_CONTENT_TYPES
+    """
     if not content_type:
         return False
     ct = content_type.split(";")[0].strip().lower()
-    return any(ct.startswith(p) for p in ALLOWED_CONTENT_TYPES)
+    return ct in ALLOWED_CONTENT_TYPES
 
 
 def _get_extension(content_type: Optional[str], url: str) -> str:
@@ -158,6 +192,11 @@ def build_save_path(ticker: str, url: str, content_type: Optional[str] = None) -
 
 
 def _mk_client() -> httpx.Client:
+    """Create an HTTP client with configured timeouts and user agent.
+
+    Returns:
+        httpx.Client: A configured client that follows redirects
+    """
     timeout = httpx.Timeout(
         connect=CONNECT_TIMEOUT,
         read=READ_TIMEOUT,
@@ -170,7 +209,14 @@ def _mk_client() -> httpx.Client:
 
 
 def _is_retryable(exc: BaseException) -> bool:
-    # Network errors and 5xx are retryable
+    """Determine if an exception should trigger a retry attempt.
+
+    Args:
+        exc: The exception to check
+
+    Returns:
+        bool: True if exception represents a transient error (network or 5xx)
+    """
     if isinstance(exc, httpx.RequestError):
         return True
     if isinstance(exc, httpx.HTTPStatusError) and 500 <= exc.response.status_code < 600:
