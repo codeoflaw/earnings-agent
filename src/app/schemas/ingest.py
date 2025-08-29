@@ -2,6 +2,7 @@ from pydantic import AnyHttpUrl, BaseModel, Field
 
 TICKER_PATTERN = r"^[A-Z0-9\-\.]+$"
 
+
 class IngestRequest(BaseModel):
     url: AnyHttpUrl  # ensures valid http/https
 

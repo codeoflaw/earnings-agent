@@ -1,7 +1,7 @@
 import httpx
 from fastapi import FastAPI, HTTPException, Path
 
-from app.schemas.ingest import IngestRequest, IngestResult
+from app.schemas.ingest import TICKER_PATTERN, IngestRequest, IngestResult
 from app.services.ingest import IngestTooLarge, IngestUnsupportedType, fetch_to_disk
 
 app = FastAPI()
@@ -15,7 +15,7 @@ def health():
 @app.post("/ingest/{ticker}", response_model=IngestResult)
 def ingest(
     req: IngestRequest,
-    ticker: str = Path(..., min_length=1, max_length=8, pattern=r"^[A-Z0-9\-\.]+$"),
+    ticker: str = Path(..., min_length=1, max_length=8, pattern=TICKER_PATTERN),
 ):
     try:
         path, content_type, nbytes = fetch_to_disk(ticker, str(req.url))

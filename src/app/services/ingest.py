@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -25,6 +26,7 @@ from app.config import (
     USER_AGENT,
     WRITE_TIMEOUT,
 )
+from app.schemas.ingest import TICKER_PATTERN
 
 INDEX_FILE = DATA_DIR / ".ingest_index.json"
 
@@ -103,18 +105,22 @@ def ensure_ticker_dir(ticker: str) -> Path:
     return p
 
 
-def _ext_from_content_type(ct: Optional[str]) -> str:
-    if not ct:
-        return ".bin"
-    ct = ct.split(";")[0].strip().lower()
-    if ct in {"text/html"}:
-        return ".html"
-    if ct in {"application/pdf"}:
-        return ".pdf"
-    return ".bin"
+def _is_allowed_content_type(content_type: Optional[str]) -> bool:
+    if not content_type:
+        return False
+    ct = content_type.split(";")[0].strip().lower()
+    return any(ct.startswith(p) for p in ALLOWED_CONTENT_TYPES)
 
 
-def guess_extension_from_url(url: str) -> str:
+def _get_extension(content_type: Optional[str], url: str) -> str:
+    """Get file extension from content type (preferred) or URL."""
+    if content_type:
+        ct = content_type.split(";")[0].strip().lower()
+        if ct in {"text/html"}:
+            return ".html"
+        if ct in {"application/pdf"}:
+            return ".pdf"
+    # Fall back to URL-based extension
     path = urlparse(url).path.lower()
     if path.endswith(".pdf"):
         return ".pdf"
@@ -127,12 +133,7 @@ def build_save_path(ticker: str, url: str, content_type: Optional[str] = None) -
     folder = ensure_ticker_dir(ticker)
     basename = Path(urlparse(url).path).name or "download"
     basename = basename.split("?")[0] or "download"
-    # Decide extension: prefer content-type if known, else URL
-    ext = (
-        _ext_from_content_type(content_type)
-        if content_type
-        else guess_extension_from_url(url)
-    )
+    ext = _get_extension(content_type, url)
     if not basename.endswith(ext):
         basename = f"{basename}{ext}"
     date_prefix = date.today().strftime("%Y%m%d")
@@ -175,6 +176,10 @@ def fetch_to_disk(
     Retries transient network errors and 5xx up to 3 attempts (exponential backoff).
     Returns: (saved_path, content_type, num_bytes)
     """
+    # Validate ticker format at service level
+    if not re.match(TICKER_PATTERN, ticker.upper()):
+        raise ValueError(f"Invalid ticker format: {ticker}")
+
     cached = _index_get_recent(ticker, url)
     if cached:
         path, ctype, nbytes = cached
@@ -194,9 +199,7 @@ def fetch_to_disk(
             if head.status_code < 400:
                 ct = head.headers.get("content-type")
                 cl = head.headers.get("content-length")
-                if ct and not any(
-                    ct.lower().startswith(p) for p in ALLOWED_CONTENT_TYPES
-                ):
+                if ct and not _is_allowed_content_type(ct):
                     raise IngestUnsupportedType(ct)
         except httpx.RequestError:
             pass
@@ -223,9 +226,7 @@ def fetch_to_disk(
             if (
                 content_type
                 and content_type != ct
-                and not any(
-                    content_type.lower().startswith(p) for p in ALLOWED_CONTENT_TYPES
-                )
+                and not _is_allowed_content_type(content_type)
             ):
                 save_path.unlink(missing_ok=True)
                 raise IngestUnsupportedType(content_type)
