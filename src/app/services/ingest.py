@@ -239,10 +239,6 @@ def fetch_to_disk(
     Retries transient network errors and 5xx up to 3 attempts (exponential backoff).
     Returns: (saved_path, content_type, num_bytes)
     """
-    # Validate ticker format at service level
-    if not re.match(TICKER_PATTERN, ticker.upper()):
-        raise ValueError(f"Invalid ticker format: {ticker}")
-
     cached = _index_get_recent(ticker, url)
     if cached:
         path, ctype, nbytes = cached
