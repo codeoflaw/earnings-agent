@@ -194,6 +194,10 @@ def fetch_to_disk(
             if head.status_code < 400:
                 ct = head.headers.get("content-type")
                 cl = head.headers.get("content-length")
+                if ct and not any(
+                    ct.lower().startswith(p) for p in ALLOWED_CONTENT_TYPES
+                ):
+                    raise IngestUnsupportedType(ct)
         except httpx.RequestError:
             pass
 
@@ -211,22 +215,28 @@ def fetch_to_disk(
                     if not chunk:
                         continue
                     bytes_written += len(chunk)
+                    if bytes_written > MAX_BYTES:
                         save_path.unlink(missing_ok=True)
                         raise IngestTooLarge(f"Downloaded > {MAX_BYTES} bytes")
                     f.write(chunk)
 
-        if content_type and not any(
-            content_type.lower().startswith(p) for p in ALLOWED_CONTENT_TYPES
-        ):
-            raise IngestUnsupportedType(content_type)
+            if (
+                content_type
+                and content_type != ct
+                and not any(
+                    content_type.lower().startswith(p) for p in ALLOWED_CONTENT_TYPES
+                )
+            ):
+                save_path.unlink(missing_ok=True)
+                raise IngestUnsupportedType(content_type)
 
-        log.info(
-            "ingest.saved ticker=%s bytes=%s type=%s path=%s",
-            ticker,
-            bytes_written,
-            content_type,
-            save_path,
-        )
+            log.info(
+                "ingest.saved ticker=%s bytes=%s type=%s path=%s",
+                ticker,
+                bytes_written,
+                content_type,
+                save_path,
+            )
 
         _index_put(
             ticker,
