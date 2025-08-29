@@ -38,8 +38,6 @@ def test_idempotent_cache_hit(tmp_path, monkeypatch):
 
 def test_idempotent_cache_expired(tmp_path, monkeypatch):
     # Point to tmp & set very small TTL
-    ingest_mod.DATA_DIR = tmp_path
-    ingest_mod.INDEX_FILE = ingest_mod.DATA_DIR / ".ingest_index.json"
     monkeypatch.setenv("INGEST_IDEMPOTENCY_TTL_SECONDS", "0")  # expire immediately
 
     # Re-import config values in module under test (simple way for this project)
@@ -48,9 +46,12 @@ def test_idempotent_cache_expired(tmp_path, monkeypatch):
     from app import config as config_mod
 
     reload(config_mod)
-    reload(ingest_mod)  # refresh picks up new TTL
+    reload(ingest_mod)
     # After reload, functions are rebound; import fetch again:
     from app.services.ingest import fetch_to_disk
+
+    ingest_mod.DATA_DIR = tmp_path
+    ingest_mod.INDEX_FILE = ingest_mod.DATA_DIR / ".ingest_index.json"
 
     html = b"<html>press</html>"
     calls = {"get": 0}

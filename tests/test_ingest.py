@@ -33,7 +33,7 @@ def test_fetch_to_disk_html(tmp_path, monkeypatch):
     assert path.read_bytes() == html
     assert content_type.startswith("text/html")
     assert nbytes == len(html)
-    assert str(path).startswith(str(tmp_path / "raw" / "MSFT"))
+    assert str(path.parent).endswith("/raw/MSFT")
 
 
 def test_fetch_too_large(tmp_path):

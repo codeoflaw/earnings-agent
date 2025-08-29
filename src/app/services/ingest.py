@@ -135,7 +135,8 @@ def build_save_path(ticker: str, url: str, content_type: Optional[str] = None) -
     )
     if not basename.endswith(ext):
         basename = f"{basename}{ext}"
-    return folder / f"{date.today().isoformat()}_{basename}"
+    date_prefix = date.today().strftime("%Y%m%d")
+    return folder / f"{date_prefix}_{basename}"
 
 
 def _mk_client() -> httpx.Client:
