@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import Path
 
@@ -6,6 +7,8 @@ from fastapi import HTTPException
 
 from app.config import DATA_DIR
 from app.schemas.extract import CompanySnapshot, Headline
+
+log = logging.getLogger(__name__)
 
 
 def latest_file_for_ticker(ticker: str) -> Path:
@@ -43,8 +46,29 @@ def parse_revenue_and_eps(html: str) -> Headline:
 
 
 def extract_snapshot(ticker: str) -> CompanySnapshot:
+    """Extract financial data from the most recent HTML file for a ticker.
+
+    Args:
+        ticker: Stock symbol to extract data for
+
+    Returns:
+        CompanySnapshot with revenue and EPS data
+
+    Raises:
+        HTTPException: If file not found (404) or required data missing (422)
+    """
     path = latest_file_for_ticker(ticker)
-    html = path.read_text(errors="ignore")
+
+    try:
+        # Try UTF-8 first
+        html = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        # Fall back to replace mode and log the issue
+        log.warning(
+            "Failed to decode %s as UTF-8, falling back to replace mode", path.name
+        )
+        html = path.read_text(encoding="utf-8", errors="replace")
+
     headline = parse_revenue_and_eps(html)
     return CompanySnapshot(
         ticker=ticker.upper(), headline=headline, source_path=str(path)
