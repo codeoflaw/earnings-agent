@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 import json
-from typing import Optional, TypedDict
+import re
+from typing import Literal, Optional, Pattern, TypedDict
 
 from app.config import DATA_DIR
+from app.schemas.ingest import TICKER_PATTERN
+
+BaselineKind = Literal["qoq", "yoy"]
+
+_TICKER_RE: Pattern[str] = re.compile(TICKER_PATTERN)
 
 
 class Headline(TypedDict, total=False):
@@ -48,10 +54,22 @@ def compute_deltas(
     }
 
 
-def load_baseline(ticker: str, kind: str) -> Headline | None:
+def load_baseline(ticker: str, kind: BaselineKind) -> Headline | None:
+    """Load baseline data for comparing financial metrics.
+
+    Args:
+        ticker: Company stock symbol
+        kind: Type of baseline - "qoq" (quarter-over-quarter) or "yoy" (year-over-year)
+
+    Returns:
+        Headline with baseline metrics or None if not found
+
+    Raises:
+        ValueError: If ticker format is invalid
     """
-    kind: 'qoq' or 'yoy'. Looks for data/parsed/{ticker}/{kind}_baseline.json
-    """
+    if not _TICKER_RE.match(ticker.upper()):
+        raise ValueError(f"Invalid ticker format: {ticker}")
+
     p = DATA_DIR / "parsed" / ticker.upper() / f"{kind}_baseline.json"
     if not p.exists():
         return None
