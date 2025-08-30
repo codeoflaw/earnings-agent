@@ -1,7 +1,9 @@
 import httpx
 from fastapi import FastAPI, HTTPException, Path
 
+from app.schemas.extract import CompanySnapshot
 from app.schemas.ingest import TICKER_PATTERN, IngestRequest, IngestResult
+from app.services.extract import extract_snapshot
 from app.services.ingest import IngestTooLarge, IngestUnsupportedType, fetch_to_disk
 
 app = FastAPI()
@@ -36,3 +38,8 @@ def ingest(
         )
     except httpx.RequestError as e:
         raise HTTPException(status_code=504, detail=f"Network error: {e}")
+
+
+@app.post("/extract/{ticker}", response_model=CompanySnapshot)
+def extract(ticker: str):
+    return extract_snapshot(ticker)
