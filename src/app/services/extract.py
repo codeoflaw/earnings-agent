@@ -37,7 +37,7 @@ def parse_revenue_and_eps(html: str) -> Headline:
     elif rev_match.group(2) and rev_match.group(2).lower().startswith("m"):
         revenue_val *= 1_000_000
 
-    eps_val = float(eps_match.group(1).replace(",", "").strip())
+    eps_val = float(eps_match.group(1).replace(",", ""))
 
     return Headline(revenue=revenue_val, eps_diluted=eps_val)
 
