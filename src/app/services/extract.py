@@ -22,11 +22,11 @@ def parse_revenue_and_eps(html: str) -> Headline:
     soup = BeautifulSoup(html, "html.parser")
     text = soup.get_text(" ", strip=True)
 
-    # Super naive regex for demo — we’ll refine on real fixtures
-    rev_match = re.search(
-        r"Revenue.*?\$?([\d,]+\.?\d*)\s*(million|billion)?", text, re.I
-    )
-    eps_match = re.search(r"(?:Diluted\s+)?EPS.*?\$?([\d\.]+)", text, re.I)
+    rev_pattern = r"Revenue.*?\$?([\d,\.]+)\s*(billion|million)?"
+    eps_pattern = r"Diluted EPS.*?\$?([\d,\.]+)[,\s]"
+
+    rev_match = re.search(rev_pattern, text, re.IGNORECASE)
+    eps_match = re.search(eps_pattern, text, re.IGNORECASE)
 
     if not rev_match or not eps_match:
         raise HTTPException(status_code=422, detail="Missing revenue or EPS")
@@ -37,7 +37,7 @@ def parse_revenue_and_eps(html: str) -> Headline:
     elif rev_match.group(2) and rev_match.group(2).lower().startswith("m"):
         revenue_val *= 1_000_000
 
-    eps_val = float(eps_match.group(1).replace("$", ""))
+    eps_val = float(eps_match.group(1).replace(",", "").strip())
 
     return Headline(revenue=revenue_val, eps_diluted=eps_val)
 
